@@ -54,6 +54,7 @@ class FiniteStateMachine {
         println("Handling $state...")
         // Simulate a slow state machine
         delay(Random.nextLong(from = 100L, until = 1000L))
+        @Suppress("UNUSED_VARIABLE")
         val exhaustive = when (state) {
             is Idle -> println("Please fetch")
             is Loading -> println("Please reject or resolve")

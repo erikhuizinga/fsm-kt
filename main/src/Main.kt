@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlin.random.Random
 
+@OptIn(ExperimentalCoroutinesApi::class)
 fun main() {
     val scope = CoroutineScope(Job())
     val jobs = mutableListOf<Job>()
@@ -25,6 +26,7 @@ fun main() {
                     delay(Random.nextLong(from = 100L, until = 1000L))
                 }
 
+                @Suppress("UNUSED_VARIABLE")
                 val exhaustive = when (state) {
                     is Idle -> {
                         println("Fetching")
