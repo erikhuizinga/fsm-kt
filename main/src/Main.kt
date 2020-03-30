@@ -25,7 +25,7 @@ fun main() {
                     delay(Random.nextLong(from = 100L, until = 1000L))
                 }
 
-                when (state) {
+                val exhaustive = when (state) {
                     is Idle -> {
                         println("Fetching")
                         state.fetch()
