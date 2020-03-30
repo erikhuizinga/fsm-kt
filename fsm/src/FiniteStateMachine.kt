@@ -1,22 +1,15 @@
 import State.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.channels.BroadcastChannel
-import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlin.random.Random
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class FiniteStateMachine {
-    private val broadcast = BroadcastChannel<State>(Channel.CONFLATED)
-
-    init {
-        broadcast.offer(Idle(this@FiniteStateMachine))
-    }
-
+    private val broadcast = ConflatedBroadcastChannel<State>(Idle(this))
     private var isHandlingStates = false
-
     private val handler = broadcast
         .asFlow()
         .onStart { println("Starting state handler") }
