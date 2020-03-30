@@ -4,10 +4,7 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.*
 import kotlin.random.Random
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
@@ -18,18 +15,28 @@ class FiniteStateMachine {
         broadcast.offer(Idle(this@FiniteStateMachine))
     }
 
+    private var isHandlingStates = false
+
+    private val handler = broadcast
+        .asFlow()
+        .onStart { println("Starting state handler") }
+        .onEach(::handleState)
+        .onCompletion { println("Completed state handler") }
+
     /**
      * Collect new states from this flow.
      * This is public for any observer.
      */
     val states = broadcast
         .asFlow()
-        .onStart { println("Flow started") }
-        .onEach { state ->
-            println("Received state $state")
-            state.handle()
+        .onStart {
+            println("State flow started")
+            if (!isHandlingStates) {
+                isHandlingStates = true
+                emitAll(handler)
+            }
         }
-        .onCompletion { println("Flow completed") }
+        .onCompletion { println("State flow completed") }
 
     fun close() {
         broadcast.close()
@@ -43,15 +50,15 @@ class FiniteStateMachine {
     /**
      * Side effects for state go here.
      */
-    private suspend fun State.handle() {
-        println("Handling...")
+    private suspend fun handleState(state: State) {
+        println("Handling $state...")
         // Simulate a slow state machine
         delay(Random.nextLong(from = 100L, until = 1000L))
-        val exhaustive = when (this) {
+        val exhaustive = when (state) {
             is Idle -> println("Please fetch")
             is Loading -> println("Please reject or resolve")
-            is Failure -> println("Please retry (retries = $retries)")
-            is Success -> println("Did $retries retries")
+            is Failure -> println("Please retry (retries = ${state.retries})")
+            is Success -> println("Did ${state.retries} retries")
         }
     }
 
