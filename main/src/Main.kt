@@ -13,15 +13,14 @@ fun main() {
     jobs += scope.launch {
         // Run for a limited time
         val result = withTimeoutOrNull(6000L) {
-            println("Starting state flow collection")
-
+            println("Starting state flow collector")
             lateinit var collector: Job
 
             val action: suspend (State) -> Unit = { state ->
                 println("Collected state $state")
 
                 if (state !is Success) {
-                    println("Handling...")
+                    println("Processing $state...")
                     // Simulate slow main loop
                     delay(Random.nextLong(from = 100L, until = 1000L))
                 }
@@ -50,7 +49,9 @@ fun main() {
                     }
                 }
             }
+
             collector = fsm.states.onEach(action).launchIn(this)
+
             "🙂"
         }
         println(result ?: "🙁 Timed out!")
@@ -61,7 +62,7 @@ fun main() {
     runBlocking { delay(2000) }
     jobs += fsm
         .states
-        .onStart { println("Starting another state flow collection") }
+        .onStart { println("Starting another state flow collector") }
         .onEach { println("Another collector collected $it") }
         .launchIn(scope)
 
