@@ -14,45 +14,18 @@ fun main() {
     jobs += scope.launch {
         // Run for a limited time
         val result = withTimeoutOrNull(6000L) {
-            println("Starting state flow collector")
             lateinit var collector: Job
-
-            val action: suspend (State) -> Unit = { state ->
-                println("Collected state $state")
-
-                if (state !is Success) {
-                    println("Processing $state...")
-                    // Simulate slow main loop
-                    delay(Random.nextLong(from = 100L, until = 1000L))
-                }
-
-                @Suppress("UNUSED_VARIABLE")
-                val exhaustive = when (state) {
-                    is Idle -> {
-                        println("Fetching")
-                        state.fetch()
-                    }
-                    is Loading -> {
-                        if (Random.nextLong(from = 0L, until = 3L) == 2L) {
-                            println("Resolving")
-                            state.resolve()
-                        } else {
-                            println("Rejecting")
-                            state.reject()
-                        }
-                    }
-                    is Failure -> {
-                        println("Retrying, retries before now = ${state.retries}")
-                        state.retry()
-                    }
-                    is Success -> {
+            collector = fsm
+                .states
+                .onStart { println("Started state flow collector") }
+                .onEach { state ->
+                    println("Collected state $state")
+                    fsm.process(state) {
                         println("🎉 Cancelling collector")
                         collector.cancel()
                     }
                 }
-            }
-
-            collector = fsm.states.onEach(action).launchIn(this)
+                .launchIn(this)
 
             "🙂"
         }
@@ -64,11 +37,46 @@ fun main() {
     runBlocking { delay(2000) }
     jobs += fsm
         .states
-        .onStart { println("Starting another state flow collector") }
+        .onStart { println("Started another state flow collector") }
         .onEach { println("Another collector collected $it") }
         .launchIn(scope)
 
     runBlocking { jobs.joinAll() }
+}
+
+private suspend fun FiniteStateMachine.process(state: State, onSuccess: () -> Unit) {
+    if (state !is Success) {
+        state.simulateStateProcessing()
+    }
+
+    @Suppress("UNUSED_VARIABLE") val exhaustive = when (state) {
+        is Idle -> {
+            println("Fetching")
+            state.fetch()
+        }
+        is Loading -> {
+            if (Random.nextLong(from = 0L, until = 3L) == 2L) {
+                println("Resolving")
+                state.resolve()
+            } else {
+                println("Rejecting")
+                state.reject()
+            }
+        }
+        is Failure -> {
+            println("Retrying, retries before now = ${state.retries}")
+            state.retry()
+        }
+        is Success -> onSuccess()
+    }
+}
+
+/**
+ * Simulate slow main loop
+ */
+private suspend fun State.simulateStateProcessing() {
+    println("Processing $this...")
+    delay(Random.nextLong(from = 100L, until = 1000L))
 }
 
 private fun println(message: Any?) {

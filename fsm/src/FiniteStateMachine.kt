@@ -8,7 +8,7 @@ import kotlin.random.Random
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class FiniteStateMachine {
-    private val broadcast = ConflatedBroadcastChannel<State>(Idle(this))
+    private val broadcast = ConflatedBroadcastChannel<State>(Idle())
     private var isHandlingStates = false
     private val handler = broadcast
         .asFlow()
@@ -31,13 +31,14 @@ class FiniteStateMachine {
         }
         .onCompletion { println("State flow completed") }
 
+    suspend fun @Suppress("unused") Idle.fetch() = broadcast.send(Loading())
+    suspend fun Loading.reject() = broadcast.send(Failure(retries))
+    suspend fun Loading.resolve() = broadcast.send(Success(retries))
+    suspend fun Failure.retry() = broadcast.send(Loading(retries + 1))
+
     fun close() {
         broadcast.close()
         println("Closed")
-    }
-
-    internal fun setState(state: State) {
-        broadcast.offer(state)
     }
 
     /**
