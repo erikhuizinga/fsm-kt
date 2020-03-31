@@ -13,7 +13,7 @@ class FiniteStateMachine {
     private val isHandlingStates = AtomicBoolean(false)
     private val handler = broadcast
         .asFlow()
-        .onStart { println("Starting state handler") }
+        .onStart { println("Started state handler") }
         .onEach(::handleState)
         .onCompletion { println("Completed state handler") }
 
@@ -24,7 +24,7 @@ class FiniteStateMachine {
     val states = broadcast
         .asFlow()
         .onStart {
-            println("State flow started")
+            println("Started state flow")
             if (isHandlingStates.compareAndSet(false, true)) {
                 emitAll(handler)
             }
