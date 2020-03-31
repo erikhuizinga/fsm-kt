@@ -4,12 +4,13 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.random.Random
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class FiniteStateMachine {
     private val broadcast = ConflatedBroadcastChannel<State>(Idle())
-    private var isHandlingStates = false
+    private val isHandlingStates = AtomicBoolean(false)
     private val handler = broadcast
         .asFlow()
         .onStart { println("Starting state handler") }
@@ -24,8 +25,7 @@ class FiniteStateMachine {
         .asFlow()
         .onStart {
             println("State flow started")
-            if (!isHandlingStates) {
-                isHandlingStates = true
+            if (isHandlingStates.compareAndSet(false, true)) {
                 emitAll(handler)
             }
         }
